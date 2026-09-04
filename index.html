@@ -27,11 +27,11 @@
         input, textarea, select { width: 100%; padding: 0.7rem; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 1rem; font-size: 1rem; }
         button { background: var(--primary); color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
         button:hover { background: #1d4ed8; }
-        .btn-danger { background: #dc2626; }
+        .btn-danger { background: #dc2626; color: white; }
         .btn-danger:hover { background: #b91c1c; }
         .btn-warning { background: #d97706; color: white; }
         .btn-warning:hover { background: #b45309; }
-        .btn-secondary { background: #475569; }
+        .btn-secondary { background: #475569; color: white; }
 
         .admin-nav-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.8rem; }
         .admin-tab-btn { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; }
@@ -265,17 +265,20 @@
             const list = document.getElementById("articlesList");
             const snap = await db.collection("site_articles").orderBy("createdAt", "desc").get();
             list.innerHTML = "";
-            snap.forceLoad = true;
+            if(snap.empty) {
+                list.innerHTML = `<p style="color:#64748b; font-size:0.9rem;">कुनै पनि आर्टिकल छैन।</p>`;
+                return;
+            }
             snap.forEach(doc => {
                 const a = doc.data();
                 list.innerHTML += `
                     <div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
                         <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
                             ${a.imageUrl ? `<img src="${a.imageUrl}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; flex-shrink:0;">` : ''}
-                            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>${a.title}</strong></div>
+                            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>${a.title || 'Untitled'}</strong></div>
                         </div>
                         <div style="display:flex; gap:6px; flex-shrink:0;">
-                            <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="editArticle('${doc.id}', \`${a.title.replace(/'/g, "\\'")}\`, \`${a.desc.replace(/'/g, "\\'")}\`, \`${a.imageUrl || ''}\`)">Edit</button>
+                            <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="editArticle('${doc.id}', \`${(a.title || '').replace(/'/g, "\\'")}\`, \`${(a.desc || '').replace(/'/g, "\\'")}\`, \`${a.imageUrl || ''}\`)">Edit</button>
                             <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteArticle('${doc.id}')">Delete</button>
                         </div>
                     </div>`;
