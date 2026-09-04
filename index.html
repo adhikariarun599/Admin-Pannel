@@ -278,7 +278,6 @@
                 const a = doc.data();
                 const docId = doc.id;
                 
-                // यदि टाइटल छैन वा टाइटलको सट्टा बेस६४ फोटोको लामो कोड छ भने त्यो खराब डाटा हो, त्यसलाई प्यानलमा नदेखाउने (Skip गर्ने)
                 if (!a.title || a.title.startsWith("data:image") || a.title.length > 150) {
                     return; 
                 }
@@ -377,7 +376,7 @@
             const title = document.getElementById("lessonTitle").value.trim();
             const vid = document.getElementById("lessonUrl").value.trim();
             const desc = document.getElementById("lessonDesc").value.trim();
-            if(!title || !vid) { alert("शीर्षक र भिडियो लिङ्क राख्नुहोस्!"); त्यसैले return; }
+            if(!title || !vid) { alert("शीर्षक र भिडियो लिङ्क राख्नुहोस्!"); return; }
             await db.collection("courses").doc(courseKey).collection("lessons").add({ order, title, vid, desc });
             alert("✅ लेसन अपलोड भयो!");
         }
