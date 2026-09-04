@@ -249,16 +249,21 @@
             const articleData = { title, desc, imageUrl, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 
             try {
-                if(id) {
+                if(id && id !== "") {
+                    // यदि ID छ भने Edit/Update गर्ने
                     await db.collection("site_articles").doc(id).update(articleData);
-                    alert("✅ आर्टिकल सफलतापूर्वक अपडेट भयो!");
+                    alert("✅ आर्टिकल सफलतापूर्वक अपडेट (Edit) भयो!");
                 } else {
+                    // ID छैन भने नयाँ Add गर्ने
                     articleData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     await db.collection("site_articles").add(articleData);
                     alert("✅ नयाँ आर्टिकल सफलतापूर्वक पब्लिश भयो!");
                 }
-                resetArticleForm(); loadArticles();
-            } catch (err) { alert("❌ त्रुटी: फोटोको साइज धेरै ठूलो भयो। कृपया अझ सानो फोटो प्रयोग गर्नुहोस्।"); }
+                resetArticleForm(); 
+                loadArticles();
+            } catch (err) { 
+                alert("❌ त्रुटी: " + err.message); 
+            }
         }
 
         async function loadArticles() {
@@ -271,8 +276,8 @@
             }
             snap.forEach(doc => {
                 const a = doc.data();
-                // यदि टाइटल नभएर पुरानो बिग्रेको डाटा छ भने त्यसलाई 'Untitled' देखाउने
-                const displayTitle = a.title && !a.title.startsWith("data:image") ? a.title : "Untitled Article (പുरानो डाटा)";
+                const docId = doc.id;
+                const displayTitle = a.title && !a.title.startsWith("data:image") ? a.title : "Untitled Article";
                 
                 list.innerHTML += `
                     <div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -281,8 +286,8 @@
                             <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>${displayTitle}</strong></div>
                         </div>
                         <div style="display:flex; gap:6px; flex-shrink:0;">
-                            <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="editArticle('${doc.id}', \`${(a.title || '').replace(/'/g, "\\'")}\`, \`${(a.desc || '').replace(/'/g, "\\'")}\`, \`${a.imageUrl || ''}\`)">Edit</button>
-                            <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteArticle('${doc.id}')">Delete</button>
+                            <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="editArticle('${docId}', \`${(a.title || '').replace(/'/g, "\\'")}\`, \`${(a.desc || '').replace(/'/g, "\\'")}\`, \`${a.imageUrl || ''}\`)">Edit</button>
+                            <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteArticle('${docId}')">Delete</button>
                         </div>
                     </div>`;
             });
@@ -311,7 +316,10 @@
         }
 
         async function deleteArticle(id) {
-            if(confirm("के तपाईं यो आर्टिकल मेटाउन चाहनुहुन्छ?")) { await db.collection("site_articles").doc(id).delete(); loadArticles(); }
+            if(confirm("के तपाईं यो आर्टिकल मेटाउन चाहनुहुन्छ?")) { 
+                await db.collection("site_articles").doc(id).delete(); 
+                loadArticles(); 
+            }
         }
 
         async function loadPendingPayments() {
