@@ -74,6 +74,8 @@
         button:hover { background: #1d4ed8; }
         .btn-danger { background: #dc2626; }
         .btn-danger:hover { background: #b91c1c; }
+        .btn-warning { background: #d97706; color: white; }
+        .btn-warning:hover { background: #b45309; }
 
         .admin-nav-bar {
             display: flex;
@@ -147,10 +149,21 @@
 
         <!-- TAB: ARTICLES -->
         <div id="tabArticles" class="tab-pane">
-            <h3>Add New Article (For AdSense)</h3>
-            <input type="text" id="artTitle" placeholder="Article Title">
-            <textarea id="artDesc" rows="4" placeholder="Article Full Description..."></textarea>
-            <button onclick="publishArticle()">Publish Article</button>
+            <h3 id="articleFormHeading">Add New Article (For AdSense)</h3>
+            <input type="hidden" id="editingArticleId">
+            <input type="text" id="artTitle" placeholder="Article Title (शीर्षक)">
+            
+            <label style="font-size:0.9rem; font-weight:600; color:#475569;">थम्बनेल फोटो (अगाडि देखिने फोटो):</label>
+            <input type="file" id="artImageInput" accept="image/*" style="background:#f1f5f9; padding:0.5rem; margin-top:4px;">
+            <input type="hidden" id="artExistingImg">
+
+            <textarea id="artDesc" rows="5" placeholder="Article Full Description (HTML ट्यागहरू प्रयोग गरेर <img src='...' style='max-width:100%'> बीचमा पनि फोटो राख्न सक्नुहुन्छ)..." style="margin-top:10px;"></textarea>
+            
+            <div style="display:flex; gap:10px;">
+                <button onclick="publishArticle()" id="pubArticleBtn">Publish Article</button>
+                <button class="btn-danger" id="cancelArticleBtn" style="display:none;" onclick="resetArticleForm()">Cancel Edit</button>
+            </div>
+
             <h4 style="margin-top:2rem; margin-bottom:0.5rem;">Existing Articles:</h4>
             <div id="articlesList" style="display:flex; flex-direction:column; gap:8px;"></div>
         </div>
@@ -281,15 +294,36 @@
             if (tabName === 'notice') { document.getElementById("tabNotice").style.display = "block"; }
         }
 
-        // ARTICLES
+        // ARTICLES WITH IMAGE & EDIT/DELETE
         async function publishArticle() {
+            const id = document.getElementById("editingArticleId").value;
             const title = document.getElementById("artTitle").value.trim();
             const desc = document.getElementById("artDesc").value.trim();
+            const fileInput = document.getElementById("artImageInput");
+            let imageUrl = document.getElementById("artExistingImg").value;
+
             if(!title || !desc) { alert("शीर्षक र विवरण भर्नुहोस्!"); return; }
-            await db.collection("site_articles").add({ title, desc, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-            alert("✅ आर्टिकल पब्लिश भयो!");
-            document.getElementById("artTitle").value = "";
-            document.getElementById("artDesc").value = "";
+
+            if(fileInput.files.length > 0) {
+                imageUrl = await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.readAsDataURL(fileInput.files[0]);
+                });
+            }
+
+            const articleData = { title, desc, imageUrl, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+
+            if(id) {
+                await db.collection("site_articles").doc(id).update(articleData);
+                alert("✅ आर्टिकल सफलतापूर्वक अपडेट भयो!");
+            } else {
+                articleData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                await db.collection("site_articles").add(articleData);
+                alert("✅ नयाँ आर्टिकल सफलतापूर्वक पब्लिश भयो!");
+            }
+
+            resetArticleForm();
             loadArticles();
         }
 
@@ -298,12 +332,48 @@
             const snap = await db.collection("site_articles").orderBy("createdAt", "desc").get();
             list.innerHTML = "";
             snap.forEach(doc => {
-                list.innerHTML += `<div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;"><strong>${doc.data().title}</strong> <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteArticle('${doc.id}')">Delete</button></div>`;
+                const a = doc.data();
+                list.innerHTML += `
+                    <div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            ${a.imageUrl ? `<img src="${a.imageUrl}" style="width:40px; height:40px; object-fit:cover; border-radius:4px;">` : ''}
+                            <div><strong>${a.title}</strong><br><small style="color:#64748b;">${a.desc.substring(0, 40)}...</small></div>
+                        </div>
+                        <div style="display:flex; gap:6px;">
+                            <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="editArticle('${doc.id}', \`${a.title}\`, \`${a.desc}\`, \`${a.imageUrl || ''}\`)">Edit</button>
+                            <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteArticle('${doc.id}')">Delete</button>
+                        </div>
+                    </div>`;
             });
         }
 
+        function editArticle(id, title, desc, imageUrl) {
+            document.getElementById("editingArticleId").value = id;
+            document.getElementById("artTitle").value = title;
+            document.getElementById("artDesc").value = desc;
+            document.getElementById("artExistingImg").value = imageUrl;
+            document.getElementById("articleFormHeading").innerText = "Edit Article";
+            document.getElementById("pubArticleBtn").innerText = "Update Article";
+            document.getElementById("cancelArticleBtn").style.display = "inline-block";
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        function resetArticleForm() {
+            document.getElementById("editingArticleId").value = "";
+            document.getElementById("artTitle").value = "";
+            document.getElementById("artDesc").value = "";
+            document.getElementById("artImageInput").value = "";
+            document.getElementById("artExistingImg").value = "";
+            document.getElementById("articleFormHeading").innerText = "Add New Article (For AdSense)";
+            document.getElementById("pubArticleBtn").innerText = "Publish Article";
+            document.getElementById("cancelArticleBtn").style.display = "none";
+        }
+
         async function deleteArticle(id) {
-            if(confirm("मेटाउने?")) { await db.collection("site_articles").doc(id).delete(); loadArticles(); }
+            if(confirm("के तपाईं यो आर्टिकल मेटाउन चाहनुहुन्छ?")) {
+                await db.collection("site_articles").doc(id).delete();
+                loadArticles();
+            }
         }
 
         // PENDING PAYMENTS
