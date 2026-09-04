@@ -276,7 +276,6 @@
                 const a = doc.data();
                 const docId = doc.id;
                 
-                // सुरक्षा जाँच: यदि टाइटलको ठाउँमा बेस६४ कोड छ भने त्यसलाई लुकाउने र 'Untitled Article' मात्र देखाउने
                 let displayTitle = a.title;
                 if (!displayTitle || displayTitle.startsWith("data:image") || displayTitle.length > 100) {
                     displayTitle = "Purano Article (Metaunuhola)";
@@ -349,12 +348,6 @@
 
         async function loadCourses() {
             const list = document.getElementById("coursesList");
-            const snap =@ db.collection("site_courses").get();
-            // ... (baki courses code)
-        }
-        // (बाकी कोर्स, लेसन र क्युआर कोडको भाग उही राखिएको छ)
-        async function loadCourses() {
-            const list = document.getElementById("coursesList");
             const snap = await db.collection("site_courses").get();
             list.innerHTML = "";
             snap.forEach(doc => { list.innerHTML += `<div style="background:#f1f5f9; padding:10px; border-radius:6px;"><strong>${doc.data().title}</strong> (रु. ${doc.data().offerPrice})</div>`; });
@@ -399,7 +392,7 @@
             reader.onload = async (e) => {
                 const imgData = e.target.result;
                 await db.collection("settings").doc("payment_qr").set({ imageUrl: imgData });
-                document.getElementById("qrPreview2").src = imgData; alert("✅ QR सुरक्षित भयो!");
+                document.getElementById("qrPreview").src = imgData; alert("✅ QR सुरक्षित भयो!");
             };
             reader.readAsDataURL(file);
         }
