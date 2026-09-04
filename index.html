@@ -1,16 +1,403 @@
-async function loadPublicArticles() {
-    const grid = document.getElementById("publicArticlesGrid");
-    if (!grid) return;
-    const snap = await db.collection("site_articles").orderBy("createdAt", "desc").get();
-    grid.innerHTML = "";
-    snap.forEach(doc => {
-        const art = doc.data();
-        grid.innerHTML += `
-            <div class="blog-card">
-                <h3>${art.title}</h3>
-                <p>${art.desc}</p>
-                <span style="color:var(--primary); font-size:0.85rem; font-weight:650;">Read More &rarr;</span>
-            </div>`;
-    });
-}
-document.addEventListener("DOMContentLoaded", loadPublicArticles);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Arun Adhikari</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- FIREBASE SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --dark: #0f172a;
+            --gray-bg: #f8fafc;
+            --card-border: #e2e8f0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background-color: var(--gray-bg);
+            color: #334155;
+            padding: 20px;
+        }
+
+        .login-container {
+            max-width: 400px;
+            margin: 80px auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            display: none;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 0.7rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.7rem 1.2rem;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        button:hover { background: #1d4ed8; }
+        .btn-danger { background: #dc2626; }
+        .btn-danger:hover { background: #b91c1c; }
+
+        .admin-nav-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.8rem;
+        }
+
+        .admin-tab-btn {
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        .admin-tab-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .admin-table th, .admin-table td {
+            border: 1px solid #e2e8f0;
+            padding: 0.7rem;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        .admin-table th { background: #f1f5f9; }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="login-container">
+        <h2><i class="fas fa-shield-alt" style="color:var(--primary);"></i> Admin Portal</h2>
+        <p style="color:#64748b; margin-bottom:1.5rem; font-size:0.9rem;">admin.arunadhikari.com.np</p>
+        <input type="text" id="usernameInput" placeholder="Username">
+        <input type="password" id="passwordInput" placeholder="Password">
+        <button style="width:100%;" onclick="handleLogin()">Login to Dashboard</button>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="dashboardScreen" class="dashboard-container">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+            <h2><i class="fas fa-user-shield"></i> Management Panel</h2>
+            <button class="btn-danger" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
+
+        <!-- TABS -->
+        <div class="admin-nav-bar">
+            <button class="admin-tab-btn active" onclick="switchTab('articles', this)"><i class="fas fa-newspaper"></i> Manage Articles</button>
+            <button class="admin-tab-btn" onclick="switchTab('pending', this)"><i class="fas fa-receipt"></i> Pending Payments</button>
+            <button class="admin-tab-btn" onclick="switchTab('courses', this)"><i class="fas fa-book"></i> Courses</button>
+            <button class="admin-tab-btn" onclick="switchTab('lessons', this)"><i class="fas fa-video"></i> Lessons</button>
+            <button class="admin-tab-btn" onclick="switchTab('qr', this)"><i class="fas fa-qrcode"></i> Payment QR</button>
+            <button class="admin-tab-btn" onclick="switchTab('notice', this)"><i class="fas fa-bullhorn"></i> Notice Banner</button>
+        </div>
+
+        <!-- TAB: ARTICLES -->
+        <div id="tabArticles" class="tab-pane">
+            <h3>Add New Article (For AdSense)</h3>
+            <input type="text" id="artTitle" placeholder="Article Title">
+            <textarea id="artDesc" rows="4" placeholder="Article Full Description..."></textarea>
+            <button onclick="publishArticle()">Publish Article</button>
+            <h4 style="margin-top:2rem; margin-bottom:0.5rem;">Existing Articles:</h4>
+            <div id="articlesList" style="display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+
+        <!-- TAB: PENDING PAYMENTS -->
+        <div id="tabPending" class="tab-pane" style="display:none;">
+            <h3>Student Payment Verifications</h3>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Course & Amount</th>
+                        <th>Screenshot</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="pendingTableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- TAB: COURSES -->
+        <div id="tabCourses" class="tab-pane" style="display:none;">
+            <h3>Manage Courses & Pricing</h3>
+            <input type="text" id="crsTitle" placeholder="Course Title">
+            <input type="text" id="crsKey" placeholder="Unique Key (e.g. web_dev)">
+            <input type="number" id="crsPrice" placeholder="Offer Price (NPR)">
+            <button onclick="saveCourse()">Save Course</button>
+            <div id="coursesList" style="margin-top:1.5rem; display:flex; flex-direction:column; gap:8px;"></div>
+        </div>
+
+        <!-- TAB: LESSONS -->
+        <div id="tabLessons" class="tab-pane" style="display:none;">
+            <h3>Upload Course Lessons</h3>
+            <select id="lessonCourseSelect"></select>
+            <input type="number" id="lessonOrder" placeholder="Lesson Number (e.g. 1)">
+            <input type="text" id="lessonTitle" placeholder="Lesson Title">
+            <input type="text" id="lessonUrl" placeholder="YouTube Video URL or ID">
+            <textarea id="lessonDesc" rows="3" placeholder="Lesson Notes..."></textarea>
+            <button onclick="uploadLesson()">Publish Lesson</button>
+        </div>
+
+        <!-- TAB: QR -->
+        <div id="tabQr" class="tab-pane" style="display:none; max-width:400px;">
+            <h3>Update Payment QR</h3>
+            <input type="file" id="qrFileInput" accept="image/*" style="background:white; border:1px dashed #cbd5e1;">
+            <div style="text-align:center; margin:1rem 0;">
+                <img id="qrPreview" style="max-width:150px; border-radius:6px; border:1px solid #ddd;">
+            </div>
+            <button onclick="saveQrCode()">Save QR Code</button>
+        </div>
+
+        <!-- TAB: NOTICE -->
+        <div id="tabNotice" class="tab-pane" style="display:none; max-width:500px;">
+            <h3>Website Notice Banner</h3>
+            <input type="text" id="noticeText" placeholder="सूचना ब्यानरको टेक्स्ट...">
+            <div style="display:flex; gap:10px;">
+                <button onclick="updateNotice(true)">Publish Banner</button>
+                <button class="btn-danger" onclick="updateNotice(false)">Hide Banner</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLIgjthPddTsuf8mR4Y6fq8ETsolelhOY",
+            authDomain: "arun-courses.firebaseapp.com",
+            projectId: "arun-courses",
+            storageBucket: "arun-courses.firebasestorage.app",
+            messagingSenderId: "532244891416",
+            appId: "1:532244891416:web:90b7d7c65c047d799e406d"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let adminUser = "admin";
+        let adminPass = "Admin@12345";
+
+        async function loadCredentials() {
+            try {
+                const doc = await db.collection("settings").doc("admin_auth").get();
+                if (doc.exists) {
+                    if (doc.data().username) adminUser = doc.data().username;
+                    if (doc.data().password) adminPass = doc.data().password;
+                }
+            } catch(e) {}
+        }
+
+        if (localStorage.getItem("is_admin_logged") === "true") {
+            showDashboard();
+        }
+
+        async function handleLogin() {
+            await loadCredentials();
+            const u = document.getElementById("usernameInput").value.trim();
+            const p = document.getElementById("passwordInput").value.trim();
+            if (u === adminUser && p === adminPass) {
+                localStorage.setItem("is_admin_logged", "true");
+                showDashboard();
+            } else {
+                alert("❌ गलत Username वा Password!");
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem("is_admin_logged");
+            location.reload();
+        }
+
+        function showDashboard() {
+            document.getElementById("loginScreen").style.display = "none";
+            document.getElementById("dashboardScreen").style.display = "block";
+            loadArticles();
+            loadPendingPayments();
+            loadCourses();
+        }
+
+        function switchTab(tabName, btn) {
+            document.querySelectorAll(".tab-pane").forEach(p => p.style.display = "none");
+            document.querySelectorAll(".admin-tab-btn").forEach(b => b.classList.remove("active"));
+            if (btn) btn.classList.add("active");
+
+            if (tabName === 'articles') { document.getElementById("tabArticles").style.display = "block"; loadArticles(); }
+            if (tabName === 'pending') { document.getElementById("tabPending").style.display = "block"; loadPendingPayments(); }
+            if (tabName === 'courses') { document.getElementById("tabCourses").style.display = "block"; loadCourses(); }
+            if (tabName === 'lessons') { document.getElementById("tabLessons").style.display = "block"; loadCourseDropdown(); }
+            if (tabName === 'qr') { document.getElementById("tabQr").style.display = "block"; loadQr(); }
+            if (tabName === 'notice') { document.getElementById("tabNotice").style.display = "block"; }
+        }
+
+        // ARTICLES
+        async function publishArticle() {
+            const title = document.getElementById("artTitle").value.trim();
+            const desc = document.getElementById("artDesc").value.trim();
+            if(!title || !desc) { alert("शीर्षक र विवरण भर्नुहोस्!"); return; }
+            await db.collection("site_articles").add({ title, desc, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+            alert("✅ आर्टिकल पब्लिश भयो!");
+            document.getElementById("artTitle").value = "";
+            document.getElementById("artDesc").value = "";
+            loadArticles();
+        }
+
+        async function loadArticles() {
+            const list = document.getElementById("articlesList");
+            const snap = await db.collection("site_articles").orderBy("createdAt", "desc").get();
+            list.innerHTML = "";
+            snap.forEach(doc => {
+                list.innerHTML += `<div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center;"><strong>${doc.data().title}</strong> <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteArticle('${doc.id}')">Delete</button></div>`;
+            });
+        }
+
+        async function deleteArticle(id) {
+            if(confirm("मेटाउने?")) { await db.collection("site_articles").doc(id).delete(); loadArticles(); }
+        }
+
+        // PENDING PAYMENTS
+        async function loadPendingPayments() {
+            const tbody = document.getElementById("pendingTableBody");
+            const snap = await db.collection("enrollments").where("status", "==", "pending").get();
+            tbody.innerHTML = "";
+            if(snap.empty) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">कुनै पनि पेन्डिङ पेमेन्ट छैन।</td></tr>`; return; }
+            snap.forEach(doc => {
+                const d = doc.data();
+                tbody.innerHTML += `<tr><td>${d.studentName}<br><small>${d.studentEmail}</small></td><td>${d.courseTitle}<br><b>रु. ${d.payableAmount}</b></td><td><a href="${d.proofImage}" target="_blank">View Screenshot</a></td><td><button onclick="approvePayment('${doc.id}', '${d.studentEmail}', '${d.courseKey}')">Approve</button></td></tr>`;
+            });
+        }
+
+        async function approvePayment(id, email, courseKey) {
+            await db.collection("enrollments").doc(id).update({ status: "approved" });
+            const userSnap = await db.collection("users").where("email", "==", email.toLowerCase()).get();
+            if(!userSnap.empty) {
+                const uRef = userSnap.docs[0].ref;
+                let courses = userSnap.docs[0].data().enrolledCourses || [];
+                if(!courses.includes(courseKey)) {
+                    courses.push(courseKey);
+                    await uRef.update({ enrolledCourses: courses });
+                }
+            }
+            alert("✅ अप्रुभ भयो!");
+            loadPendingPayments();
+        }
+
+        // COURSES
+        async function loadCourses() {
+            const list = document.getElementById("coursesList");
+            const snap = await db.collection("site_courses").get();
+            list.innerHTML = "";
+            snap.forEach(doc => {
+                list.innerHTML += `<div style="background:#f1f5f9; padding:10px; border-radius:6px;"><strong>${doc.data().title}</strong> (रु. ${doc.data().offerPrice})</div>`;
+            });
+        }
+
+        async function saveCourse() {
+            const title = document.getElementById("crsTitle").value.trim();
+            const key = document.getElementById("crsKey").value.trim().toLowerCase();
+            const offerPrice = parseInt(document.getElementById("crsPrice").value);
+            if(!title || !key || isNaN(offerPrice)) return;
+            await db.collection("site_courses").doc(key).set({ title, offerPrice }, { merge: true });
+            alert("✅ कोर्स सेभ भयो!");
+            loadCourses();
+        }
+
+        async function loadCourseDropdown() {
+            const sel = document.getElementById("lessonCourseSelect");
+            const snap = await db.collection("site_courses").get();
+            sel.innerHTML = "";
+            snap.forEach(doc => { sel.innerHTML += `<option value="${doc.id}">${doc.data().title}</option>`; });
+        }
+
+        async function uploadLesson() {
+            const courseKey = document.getElementById("lessonCourseSelect").value;
+            const order = parseInt(document.getElementById("lessonOrder").value) || 1;
+            const title = document.getElementById("lessonTitle").value.trim();
+            const vid = document.getElementById("lessonUrl").value.trim();
+            const desc = document.getElementById("lessonDesc").value.trim();
+            if(!title || !vid) { alert("शीर्षक र भिडियो लिङ्क राख्नुहोस्!"); return; }
+            await db.collection("courses").doc(courseKey).collection("lessons").add({ order, title, vid, desc });
+            alert("✅ लेसन अपलोड भयो!");
+        }
+
+        // QR
+        async function loadQr() {
+            const doc = await db.collection("settings").doc("payment_qr").get();
+            if(doc.exists && doc.data().imageUrl) {
+                document.getElementById("qrPreview").src = doc.data().imageUrl;
+            }
+        }
+
+        async function saveQrCode() {
+            const file = document.getElementById("qrFileInput").files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const imgData = e.target.result;
+                await db.collection("settings").doc("payment_qr").set({ imageUrl: imgData });
+                document.getElementById("qrPreview").src = imgData;
+                alert("✅ QR सुरक्षित भयो!");
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // NOTICE
+        async function updateNotice(show) {
+            const noticeText = document.getElementById("noticeText").value.trim();
+            await db.collection("settings").doc("main").set({ showNotice: show, noticeText }, { merge: true });
+            alert("✅ नोटिस अपडेट भयो!");
+        }
+    </script>
+</body>
+</html>
