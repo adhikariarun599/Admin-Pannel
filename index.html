@@ -76,6 +76,8 @@
         .btn-danger:hover { background: #b91c1c; }
         .btn-warning { background: #d97706; color: white; }
         .btn-warning:hover { background: #b45309; }
+        .btn-secondary { background: #475569; }
+        .btn-secondary:hover { background: #334155; }
 
         .admin-nav-bar {
             display: flex;
@@ -157,7 +159,15 @@
             <input type="file" id="artImageInput" accept="image/*" style="background:#f1f5f9; padding:0.5rem; margin-top:4px;">
             <input type="hidden" id="artExistingImg">
 
-            <textarea id="artDesc" rows="5" placeholder="Article Full Description (HTML ट्यागहरू प्रयोग गरेर <img src='...' style='max-width:100%'> बीचमा पनि फोटो राख्न सक्नुहुन्छ)..." style="margin-top:10px;"></textarea>
+            <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
+                <label style="font-size:0.9rem; font-weight:600; color:#475569;">आर्टिकलको मुख्य विवरण (Content):</label>
+                <div>
+                    <input type="file" id="contentImageInput" accept="image/*" style="display:none;" onchange="insertImageIntoContent(this)">
+                    <button type="button" class="btn-secondary" style="font-size:0.8rem; padding:0.3rem 0.6rem;" onclick="document.getElementById('contentImageInput').click()"><i class="fas fa-image"></i> बीचमा फोटो राख्नुहोस्</button>
+                </div>
+            </div>
+            
+            <textarea id="artDesc" rows="7" placeholder="यहाँ आर्टिकलको पूरा विवरण लेख्नुहोस्..." style="margin-top:6px;"></textarea>
             
             <div style="display:flex; gap:10px;">
                 <button onclick="publishArticle()" id="pubArticleBtn">Publish Article</button>
@@ -292,6 +302,25 @@
             if (tabName === 'lessons') { document.getElementById("tabLessons").style.display = "block"; loadCourseDropdown(); }
             if (tabName === 'qr') { document.getElementById("tabQr").style.display = "block"; loadQr(); }
             if (tabName === 'notice') { document.getElementById("tabNotice").style.display = "block"; }
+        }
+
+        // INSERT IMAGE INTO CONTENT TEXTAREA
+        async function insertImageIntoContent(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const base64Img = e.target.result;
+                    const textarea = document.getElementById("artDesc");
+                    const imgTag = `\n<img src="${base64Img}" style="max-width:100%; border-radius:6px; margin:10px 0;" alt="Article Image">\n`;
+                    
+                    // Cursor भएको ठाउँमा वा अन्तिममा इन्सर्ट गर्ने
+                    const startPos = textarea.selectionStart;
+                    const endPos = textarea.selectionEnd;
+                    textarea.value = textarea.value.substring(0, startPos) + imgTag + textarea.value.substring(endPos, textarea.value.length);
+                    alert("✅ फोटो सफलतापूर्वक कन्टेन्टभित्र राखियो!");
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
         }
 
         // ARTICLES WITH IMAGE & EDIT/DELETE
