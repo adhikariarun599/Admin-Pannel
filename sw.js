@@ -12,13 +12,13 @@ async function loadPublicArticles() {
             const art = doc.data();
             grid.innerHTML += `
                 <div class="blog-card" style="background:#fff; padding:1.5rem; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:1.5rem;">
-                    ${art.imageUrl ? `<img src="${art.imageUrl}" style="width:100%; height:180px; object-fit:cover; border-radius:8px; margin-bottom:12px;">` : ''}
+                    ${art.imageUrl ? `<img src="${art.imageUrl}" style="width:100%; height:180px; object-fit:cover; border-radius:8px; margin-bottom:12px;" alt="Thumbnail">` : ''}
                     <h3 style="font-size:1.2rem; color:#0f172a; margin-bottom:8px;">${art.title}</h3>
                     <div style="color:#334155; font-size:0.95rem; line-height:1.6;">${art.desc}</div>
                 </div>`;
         });
     } catch(e) {
-        grid.innerHTML = `<p style="color:red;">आर्टिकल लोड गर्न समस्या भयो।</p>`;
+        console.error(e);
     }
 }
 document.addEventListener("DOMContentLoaded", loadPublicArticles);
