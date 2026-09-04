@@ -250,11 +250,9 @@
 
             try {
                 if(id && id !== "") {
-                    // यदि ID छ भने Edit/Update गर्ने
                     await db.collection("site_articles").doc(id).update(articleData);
-                    alert("✅ आर्टिकल सफलतापूर्वक अपडेट (Edit) भयो!");
+                    alert("✅ आर्टिकल सफलतापूर्वक अपडेट भयो!");
                 } else {
-                    // ID छैन भने नयाँ Add गर्ने
                     articleData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
                     await db.collection("site_articles").add(articleData);
                     alert("✅ नयाँ आर्टिकल सफलतापूर्वक पब्लिश भयो!");
@@ -277,7 +275,12 @@
             snap.forEach(doc => {
                 const a = doc.data();
                 const docId = doc.id;
-                const displayTitle = a.title && !a.title.startsWith("data:image") ? a.title : "Untitled Article";
+                
+                // सुरक्षा जाँच: यदि टाइटलको ठाउँमा बेस६४ कोड छ भने त्यसलाई लुकाउने र 'Untitled Article' मात्र देखाउने
+                let displayTitle = a.title;
+                if (!displayTitle || displayTitle.startsWith("data:image") || displayTitle.length > 100) {
+                    displayTitle = "Purano Article (Metaunuhola)";
+                }
                 
                 list.innerHTML += `
                     <div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
@@ -286,7 +289,7 @@
                             <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>${displayTitle}</strong></div>
                         </div>
                         <div style="display:flex; gap:6px; flex-shrink:0;">
-                            <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="editArticle('${docId}', \`${(a.title || '').replace(/'/g, "\\'")}\`, \`${(a.desc || '').replace(/'/g, "\\'")}\`, \`${a.imageUrl || ''}\`)">Edit</button>
+                            <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="editArticle('${docId}', \`${(a.title && !a.title.startsWith("data:image") ? a.title : '').replace(/'/g, "\\'")}\`, \`${(a.desc || '').replace(/'/g, "\\'")}\`, \`${a.imageUrl || ''}\`)">Edit</button>
                             <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteArticle('${docId}')">Delete</button>
                         </div>
                     </div>`;
@@ -295,7 +298,7 @@
 
         function editArticle(id, title, desc, imageUrl) {
             document.getElementById("editingArticleId").value = id;
-            document.getElementById("artTitle").value = title.startsWith("data:image") ? "" : title;
+            document.getElementById("artTitle").value = title;
             document.getElementById("artDesc").value = desc;
             document.getElementById("artExistingImg").value = imageUrl;
             document.getElementById("articleFormHeading").innerText = "Edit Article";
@@ -346,6 +349,12 @@
 
         async function loadCourses() {
             const list = document.getElementById("coursesList");
+            const snap =@ db.collection("site_courses").get();
+            // ... (baki courses code)
+        }
+        // (बाकी कोर्स, लेसन र क्युआर कोडको भाग उही राखिएको छ)
+        async function loadCourses() {
+            const list = document.getElementById("coursesList");
             const snap = await db.collection("site_courses").get();
             list.innerHTML = "";
             snap.forEach(doc => { list.innerHTML += `<div style="background:#f1f5f9; padding:10px; border-radius:6px;"><strong>${doc.data().title}</strong> (रु. ${doc.data().offerPrice})</div>`; });
@@ -390,7 +399,7 @@
             reader.onload = async (e) => {
                 const imgData = e.target.result;
                 await db.collection("settings").doc("payment_qr").set({ imageUrl: imgData });
-                document.getElementById("qrPreview").src = imgData; alert("✅ QR सुरक्षित भयो!");
+                document.getElementById("qrPreview2").src = imgData; alert("✅ QR सुरक्षित भयो!");
             };
             reader.readAsDataURL(file);
         }
