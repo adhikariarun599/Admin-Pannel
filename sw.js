@@ -12,8 +12,8 @@ async function loadArticles() {
                 const a = doc.data();
                 const docId = doc.id;
                 
-                // यो फिल्टरले त्यो लामो बेसिक्स कोड भएको बक्सलाई एडमिन लिस्टबाट लुकाउँछ
-                if (!a.title || a.title.startsWith("data:image") || a.title.length > 150 || a.title.includes("base64")) {
+                // यदि title छैन वा खाली छ भने यो खराब डकुमेन्टलाई लिस्टमा देखाउँदै देखाउँदैन
+                if (!a.title || a.title.trim() === "" || a.title.startsWith("data:image")) {
                     return; 
                 }
                 
