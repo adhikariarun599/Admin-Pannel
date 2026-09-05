@@ -13,29 +13,22 @@ const db = firebase.firestore();
 let adminUser = "admin";
 let adminPass = "Admin@12345";
 
-async function loadCredentials() {
-    try {
-        const doc = await db.collection("settings").doc("admin_auth").get();
-        if (doc.exists) {
-            if (doc.data().username) adminUser = doc.data().username;
-            if (doc.data().password) adminPass = doc.data().password;
-        }
-    } catch(e) {}
+if (localStorage.getItem("is_admin_logged") === "true") { 
+    showDashboard(); 
 }
 
-if (localStorage.getItem("is_admin_logged") === "true") { showDashboard(); }
-
 async function handleLogin() {
-    await loadCredentials();
     const u = document.getElementById("usernameInput").value.trim();
     const p = document.getElementById("passwordInput").value.trim();
     
+    // पहिलो प्रयास: डिफल्ट युजरनेम र पासवर्ड जाँच गर्ने
     if (u === adminUser && p === adminPass) {
         localStorage.setItem("is_admin_logged", "true");
         showDashboard();
         return;
     }
 
+    // दोस्रो प्रयास: फायरबेस (Firestore) बाट चेक गर्ने
     try {
         const doc = await db.collection("settings").doc("admin_auth").get();
         if (doc.exists) {
