@@ -11,7 +11,7 @@ async function loadPublicArticles() {
         snap.forEach(doc => {
             const art = doc.data();
             
-            // imageUrl मा यदि ब्याকटीक (`) वा अतिरिक्त स्पेस आएको छ भने त्यसलाई हटाउने
+            // अनावश्यक ब्याकटिक वा स्पेस सफा गर्ने
             let cleanImageUrl = art.imageUrl ? art.imageUrl.replace(/[`']/g, '').trim() : '';
             
             let imageSection = '';
@@ -19,6 +19,11 @@ async function loadPublicArticles() {
                 if (cleanImageUrl.startsWith('data:image') || cleanImageUrl.startsWith('http')) {
                     imageSection = `<img src="${cleanImageUrl}" style="width:100%; height:180px; object-fit:cover; border-radius:8px; margin-bottom:12px;" alt="Thumbnail">`;
                 }
+            }
+
+            // यदि शीर्षक खाली छ वा बेसिक्स कोड हो भने त्यसलाई इग्नोर गर्ने
+            if (!art.title || art.title.startsWith("data:image") || art.title.length > 150) {
+                return;
             }
 
             grid.innerHTML += `
