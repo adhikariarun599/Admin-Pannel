@@ -32,6 +32,8 @@
         .btn-warning { background: #d97706; color: white; }
         .btn-warning:hover { background: #b45309; }
         .btn-secondary { background: #475569; color: white; }
+        .btn-success { background: #089981; color: white; }
+        .btn-success:hover { background: #057a66; }
 
         .admin-nav-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.8rem; }
         .admin-tab-btn { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; }
@@ -74,7 +76,6 @@
             <h3 id="articleFormHeading">Add New Article (For AdSense & News)</h3>
             <input type="hidden" id="editingArticleId">
             
-            <!-- समाचारको क्याटगोरी छान्ने ड्रपडाउन -->
             <label style="font-size:0.9rem; font-weight:600; color:#475569;">समाचारको श्रेणी (Category):</label>
             <select id="artCategory" style="margin-top:4px; background:#fff;">
                 <option value="homepage">होमपेज (Homepage)</option>
@@ -346,7 +347,18 @@
             if(snap.empty) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">कुनै पनि पेन्डिङ पेमेन्ट छैन।</td></tr>`; return; }
             snap.forEach(doc => {
                 const d = doc.data();
-                tbody.innerHTML += `<tr><td>${d.studentName}<br><small>${d.studentEmail}</small></td><td>${d.courseTitle}<br><b>रु. ${d.payableAmount}</b></td><td><a href="${d.proofImage}" target="_blank">View Screenshot</a></td><td><button onclick="approvePayment('${doc.id}', '${d.studentEmail}', '${d.courseKey}')">Approve</button></td></tr>`;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${d.studentName}<br><small>${d.studentEmail}</small></td>
+                        <td>${d.courseTitle}<br><b>रु. ${d.payableAmount}</b></td>
+                        <td><a href="${d.proofImage}" target="_blank">View Screenshot</a></td>
+                        <td>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn-success" style="padding:5px 10px; font-size:0.85rem;" onclick="approvePayment('${doc.id}', '${d.studentEmail}', '${d.courseKey}')">Approve</button>
+                                <button class="btn-danger" style="padding:5px 10px; font-size:0.85rem;" onclick="rejectPayment('${doc.id}')">Reject</button>
+                            </div>
+                        </td>
+                    </tr>`;
             });
         }
 
@@ -358,7 +370,15 @@
                 let courses = userSnap.docs[0].data().enrolledCourses || [];
                 if(!courses.includes(courseKey)) { courses.push(courseKey); await uRef.update({ enrolledCourses: courses }); }
             }
-            alert("✅ अप्रुभ भयो!"); loadPendingPayments();
+            alert("✅ सफलतापूर्वक अप्रुभ भयो!"); loadPendingPayments();
+        }
+
+        async function rejectPayment(id) {
+            if(confirm("के तपाईं यो पेमेन्ट अनुरोध खारेज (Reject) गर्न चाहनुहुन्छ?")) {
+                await db.collection("enrollments").doc(id).delete();
+                alert("❌ पेमेन्ट अस्वीकार गरियो!");
+                loadPendingPayments();
+            }
         }
 
         async function loadCourses() {
