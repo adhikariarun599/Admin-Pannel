@@ -71,9 +71,20 @@
 
         <!-- TAB: ARTICLES -->
         <div id="tabArticles" class="tab-pane">
-            <h3 id="articleFormHeading">Add New Article (For AdSense)</h3>
+            <h3 id="articleFormHeading">Add New Article (For AdSense & News)</h3>
             <input type="hidden" id="editingArticleId">
-            <input type="text" id="artTitle" placeholder="Article Title (शीर्षक)">
+            
+            <!-- समाचारको क्याटगोरी छान्ने ड्रपडाउन -->
+            <label style="font-size:0.9rem; font-weight:600; color:#475569;">समाचारको श्रेणी (Category):</label>
+            <select id="artCategory" style="margin-top:4px; background:#fff;">
+                <option value="homepage">होमपेज (Homepage)</option>
+                <option value="finance">आर्थिक साक्षरता</option>
+                <option value="stock">लगानी र सेयर बजार</option>
+                <option value="tech">प्रविधि र सीप</option>
+                <option value="agri">कृषि तथा व्यवसाय</option>
+            </select>
+
+            <input type="text" id="artTitle" placeholder="Article Title (शीर्षक)" style="margin-top:4px;">
             
             <label style="font-size:0.9rem; font-weight:600; color:#475569;">थम्बनेल फोटो (अगाडि देखिने फोटो):</label>
             <input type="file" id="artImageInput" accept="image/*" style="background:#f1f5f9; padding:0.5rem; margin-top:4px;">
@@ -240,13 +251,14 @@
             const id = document.getElementById("editingArticleId").value;
             const title = document.getElementById("artTitle").value.trim();
             const desc = document.getElementById("artDesc").value.trim();
+            const category = document.getElementById("artCategory").value;
             const fileInput = document.getElementById("artImageInput");
             let imageUrl = document.getElementById("artExistingImg").value;
 
             if(!title || !desc) { alert("शीर्षक र विवरण भर्नुहोस्!"); return; }
             if(fileInput.files.length > 0) { imageUrl = await compressImage(fileInput.files[0], 500, 0.5); }
 
-            const articleData = { title, desc, imageUrl, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
+            const articleData = { title, desc, category, imageUrl, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 
             try {
                 if(id && id !== "") {
@@ -286,20 +298,21 @@
                     <div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                         <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
                             ${a.imageUrl && !a.imageUrl.startsWith("data:image") ? `<img src="${a.imageUrl}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; flex-shrink:0;">` : ''}
-                            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>${a.title}</strong></div>
+                            <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>[${a.category || 'homepage'}]</strong> ${a.title}</div>
                         </div>
                         <div style="display:flex; gap:6px; flex-shrink:0;">
-                            <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="editArticle('${docId}', \`${a.title.replace(/'/g, "\\'")}\`, \`${(a.desc || '').replace(/'/g, "\\'")}\`, \`${a.imageUrl || ''}\`)">Edit</button>
+                            <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="editArticle('${docId}', \`${a.title.replace(/'/g, "\\'")}\`, \`${(a.desc || '').replace(/'/g, "\\'")}\`, \`${a.imageUrl || ''}\`, \`${a.category || 'homepage'}\`)">Edit</button>
                             <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteArticle('${docId}')">Delete</button>
                         </div>
                     </div>`;
             });
         }
 
-        function editArticle(id, title, desc, imageUrl) {
+        function editArticle(id, title, desc, imageUrl, category) {
             document.getElementById("editingArticleId").value = id;
             document.getElementById("artTitle").value = title;
             document.getElementById("artDesc").value = desc;
+            document.getElementById("artCategory").value = category || 'homepage';
             document.getElementById("artExistingImg").value = imageUrl;
             document.getElementById("articleFormHeading").innerText = "Edit Article";
             document.getElementById("pubArticleBtn").innerText = "Update Article";
@@ -311,9 +324,10 @@
             document.getElementById("editingArticleId").value = "";
             document.getElementById("artTitle").value = "";
             document.getElementById("artDesc").value = "";
+            document.getElementById("artCategory").value = "homepage";
             document.getElementById("artImageInput").value = "";
             document.getElementById("artExistingImg").value = "";
-            document.getElementById("articleFormHeading").innerText = "Add New Article (For AdSense)";
+            document.getElementById("articleFormHeading").innerText = "Add New Article (For AdSense & News)";
             document.getElementById("pubArticleBtn").innerText = "Publish Article";
             document.getElementById("cancelArticleBtn").style.display = "none";
         }
