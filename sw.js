@@ -11,15 +11,13 @@ async function loadPublicArticles() {
         snap.forEach(doc => {
             const art = doc.data();
             
-            // इमेज देखाउने भाग सुरक्षित गर्न चेक थपिएको
+            // imageUrl मा यदि ब्याকटीक (`) वा अतिरिक्त स्पेस आएको छ भने त्यसलाई हटाउने
+            let cleanImageUrl = art.imageUrl ? art.imageUrl.replace(/[`']/g, '').trim() : '';
+            
             let imageSection = '';
-            if (art.imageUrl) {
-                // यदि imageUrl मा data:image वा http बाट सुरु भएको सहि लिङ्क छ भने मात्र <img> ट्याग देखाउने
-                if (art.imageUrl.startsWith('data:image') || art.imageUrl.startsWith('http')) {
-                    imageSection = `<img src="${art.imageUrl}" style="width:100%; height:180px; object-fit:cover; border-radius:8px; margin-bottom:12px;" alt="Thumbnail">`;
-                } else {
-                    // यदि टेक्स्ट वा गलत डाटा भएमा तल देखाउनबाट जोगाउने
-                    imageSection = `<p style="color: red; font-size: 0.8rem;">(इमेज डेटा सही छैन)</p>`;
+            if (cleanImageUrl) {
+                if (cleanImageUrl.startsWith('data:image') || cleanImageUrl.startsWith('http')) {
+                    imageSection = `<img src="${cleanImageUrl}" style="width:100%; height:180px; object-fit:cover; border-radius:8px; margin-bottom:12px;" alt="Thumbnail">`;
                 }
             }
 
