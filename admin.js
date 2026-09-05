@@ -1,173 +1,284 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Arun Adhikari</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    
-    <!-- FIREBASE SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+const firebaseConfig = {
+    apiKey: "AIzaSyBLIgjthPddTsuf8mR4Y6fq8ETsolelhOY",
+    authDomain: "arun-courses.firebaseapp.com",
+    projectId: "arun-courses",
+    storageBucket: "arun-courses.firebasestorage.app",
+    messagingSenderId: "532244891416",
+    appId: "1:532244891416:web:90b7d7c65c047d799e406d"
+};
 
-    <style>
-        :root {
-            --primary: #1e3a8a;
-            --dark: #0f172a;
-            --gray-bg: #f8fafc;
-            --card-border: #e2e8f0;
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+let adminUser = "admin";
+let adminPass = "Admin@12345";
+
+async function loadCredentials() {
+    try {
+        const doc = await db.collection("settings").doc("admin_auth").get();
+        if (doc.exists) {
+            if (doc.data().username) adminUser = doc.data().username;
+            if (doc.data().password) adminPass = doc.data().password;
         }
+    } catch(e) {}
+}
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
-        body { background-color: var(--gray-bg); color: #334155; padding: 20px; }
+if (localStorage.getItem("is_admin_logged") === "true") { showDashboard(); }
 
-        .login-container { max-width: 400px; margin: 80px auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; }
-        .dashboard-container { max-width: 1200px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: none; }
+async function handleLogin() {
+    await loadCredentials();
+    const u = document.getElementById("usernameInput").value.trim();
+    const p = document.getElementById("passwordInput").value.trim();
+    if (u === adminUser && p === adminPass) {
+        localStorage.setItem("is_admin_logged", "true");
+        showDashboard();
+    } else { alert("❌ गलत Username वा Password!"); }
+}
 
-        input, textarea, select { width: 100%; padding: 0.7rem; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 1rem; font-size: 1rem; }
-        button { background: var(--primary); color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #1d4ed8; }
-        .btn-danger { background: #dc2626; color: white; }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-warning { background: #d97706; color: white; }
-        .btn-warning:hover { background: #b45309; }
-        .btn-secondary { background: #475569; color: white; }
-        .btn-success { background: #089981; color: white; }
-        .btn-success:hover { background: #057a66; }
+function handleLogout() { localStorage.removeItem("is_admin_logged"); location.reload(); }
+function showDashboard() {
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("dashboardScreen").style.display = "block";
+    loadArticles(); loadPendingPayments(); loadCourses();
+}
 
-        .admin-nav-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.8rem; }
-        .admin-tab-btn { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; }
-        .admin-tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+function switchTab(tabName, btn) {
+    document.querySelectorAll(".tab-pane").forEach(p => p.style.display = "none");
+    document.querySelectorAll(".admin-tab-btn").forEach(b => b.classList.remove("active"));
+    if (btn) btn.classList.add("active");
 
-        .admin-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        .admin-table th, .admin-table td { border: 1px solid #e2e8f0; padding: 0.7rem; font-size: 0.9rem; text-align: left; }
-        .admin-table th { background: #f1f5f9; }
-    </style>
-</head>
-<body>
+    if (tabName === 'articles') { document.getElementById("tabArticles").style.display = "block"; loadArticles(); }
+    if (tabName === 'pending') { document.getElementById("tabPending").style.display = "block"; loadPendingPayments(); }
+    if (tabName === 'courses') { document.getElementById("tabCourses").style.display = "block"; loadCourses(); }
+    if (tabName === 'lessons') { document.getElementById("tabLessons").style.display = "block"; loadCourseDropdown(); }
+    if (tabName === 'qr') { document.getElementById("tabQr").style.display = "block"; loadQr(); }
+    if (tabName === 'notice') { document.getElementById("tabNotice").style.display = "block"; }
+}
 
-    <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="login-container">
-        <h2><i class="fas fa-shield-alt" style="color:var(--primary);"></i> Admin Portal</h2>
-        <p style="color:#64748b; margin-bottom:1.5rem; font-size:0.9rem;">admin.arunadhikari.com.np</p>
-        <input type="text" id="usernameInput" placeholder="Username">
-        <input type="password" id="passwordInput" placeholder="Password">
-        <button style="width:100%;" onclick="handleLogin()">Login to Dashboard</button>
-    </div>
+function compressImage(file, maxWidth = 500, quality = 0.5) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width, height = img.height;
+                if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+                canvas.width = width; canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+        };
+    });
+}
 
-    <!-- MAIN DASHBOARD -->
-    <div id="dashboardScreen" class="dashboard-container">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <h2><i class="fas fa-user-shield"></i> Management Panel</h2>
-            <button class="btn-danger" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
-        </div>
+async function insertImageIntoContent(input) {
+    if (input.files && input.files[0]) {
+        const compressedBase64 = await compressImage(input.files[0], 600, 0.5);
+        const textarea = document.getElementById("artDesc");
+        const imgTag = `\n<img src="${compressedBase64}" style="max-width:100%; border-radius:6px; margin:10px 0;" alt="Article Image">\n`;
+        const startPos = textarea.selectionStart, endPos = textarea.selectionEnd;
+        textarea.value = textarea.value.substring(0, startPos) + imgTag + textarea.value.substring(endPos, textarea.value.length);
+        alert("✅ फोटो सफलतापूर्वक कन्टेन्टभित्र राखियो!");
+    }
+}
 
-        <div class="admin-nav-bar">
-            <button class="admin-tab-btn active" onclick="switchTab('articles', this)"><i class="fas fa-newspaper"></i> Manage Articles</button>
-            <button class="admin-tab-btn" onclick="switchTab('pending', this)"><i class="fas fa-receipt"></i> Pending Payments</button>
-            <button class="admin-tab-btn" onclick="switchTab('courses', this)"><i class="fas fa-book"></i> Courses</button>
-            <button class="admin-tab-btn" onclick="switchTab('lessons', this)"><i class="fas fa-video"></i> Lessons</button>
-            <button class="admin-tab-btn" onclick="switchTab('qr', this)"><i class="fas fa-qrcode"></i> Payment QR</button>
-            <button class="admin-tab-btn" onclick="switchTab('notice', this)"><i class="fas fa-bullhorn"></i> Notice Banner</button>
-        </div>
+async function publishArticle() {
+    const id = document.getElementById("editingArticleId").value;
+    const title = document.getElementById("artTitle").value.trim();
+    const desc = document.getElementById("artDesc").value.trim();
+    const category = document.getElementById("artCategory").value;
+    const fileInput = document.getElementById("artImageInput");
+    let imageUrl = document.getElementById("artExistingImg").value;
 
-        <!-- TAB: ARTICLES -->
-        <div id="tabArticles" class="tab-pane">
-            <h3 id="articleFormHeading">Add New Article (For AdSense & News)</h3>
-            <input type="hidden" id="editingArticleId">
-            
-            <label style="font-size:0.9rem; font-weight:600; color:#475569;">समाचारको श्रेणी (Category):</label>
-            <select id="artCategory" style="margin-top:4px; background:#fff;">
-                <option value="homepage">होमपेज (Homepage)</option>
-                <option value="finance">आर्थिक साक्षरता</option>
-                <option value="stock">लगानी र सेयर बजार</option>
-                <option value="tech">प्रविधि र सीप</option>
-                <option value="agri">कृषि तथा व्यवसाय</option>
-            </select>
+    if(!title || !desc) { alert("शीर्षक र विवरण भर्नुहोस्!"); return; }
+    if(fileInput.files.length > 0) { imageUrl = await compressImage(fileInput.files[0], 500, 0.5); }
 
-            <input type="text" id="artTitle" placeholder="Article Title (शीर्षक)" style="margin-top:4px;">
-            
-            <label style="font-size:0.9rem; font-weight:600; color:#475569;">थम्बनेल फोटो (अगाडि देखिने फोटो):</label>
-            <input type="file" id="artImageInput" accept="image/*" style="background:#f1f5f9; padding:0.5rem; margin-top:4px;">
-            <input type="hidden" id="artExistingImg">
+    const articleData = { title, desc, category, imageUrl, updatedAt: firebase.firestore.FieldValue.serverTimestamp() };
 
-            <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
-                <label style="font-size:0.9rem; font-weight:600; color:#475569;">आर्टिकलको मुख्य विवरण (Content):</label>
-                <div>
-                    <input type="file" id="contentImageInput" accept="image/*" style="display:none;" onchange="insertImageIntoContent(this)">
-                    <button type="button" class="btn-secondary" style="font-size:0.8rem; padding:0.3rem 0.6rem;" onclick="document.getElementById('contentImageInput').click()"><i class="fas fa-image"></i> बीचमा फोटो राख्नुहोस्</button>
+    try {
+        if(id && id !== "") {
+            await db.collection("site_articles").doc(id).update(articleData);
+            alert("✅ आर्टिकल सफलतापूर्वक अपडेट भयो!");
+        } else {
+            articleData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            await db.collection("site_articles").add(articleData);
+            alert("✅ नयाँ आर्टिकल सफलतापूर्वक पब्लिश भयो!");
+        }
+        resetArticleForm(); 
+        loadArticles();
+    } catch (err) { 
+        alert("❌ त्रुटी: " + err.message); 
+    }
+}
+
+async function loadArticles() {
+    const list = document.getElementById("articlesList");
+    const snap = await db.collection("site_articles").orderBy("createdAt", "desc").get();
+    list.innerHTML = "";
+    
+    if(snap.empty) {
+        list.innerHTML = `<p style="color:#64748b; font-size:0.9rem;">कुनै पनि आर्टिकल छैन।</p>`;
+        return;
+    }
+
+    snap.forEach(doc => {
+        const a = doc.data();
+        const docId = doc.id;
+        
+        if (!a.title || a.title.trim() === "" || a.title.startsWith("data:image")) {
+            return; 
+        }
+        
+        list.innerHTML += `
+            <div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div style="display:flex; align-items:center; gap:10px; overflow:hidden;">
+                    ${a.imageUrl && !a.imageUrl.startsWith("data:image") ? `<img src="${a.imageUrl}" style="width:40px; height:40px; object-fit:cover; border-radius:4px; flex-shrink:0;">` : ''}
+                    <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"><strong>[${a.category || 'homepage'}]</strong> ${a.title}</div>
                 </div>
-            </div>
-            
-            <textarea id="artDesc" rows="7" placeholder="यहाँ आर्टिकलको पूरा विवरण लेख्नुहोस्..." style="margin-top:6px;"></textarea>
-            
-            <div style="display:flex; gap:10px;">
-                <button onclick="publishArticle()" id="pubArticleBtn">Publish Article</button>
-                <button class="btn-danger" id="cancelArticleBtn" style="display:none;" onclick="resetArticleForm()">Cancel Edit</button>
-            </div>
+                <div style="display:flex; gap:6px; flex-shrink:0;">
+                    <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="editArticle('${docId}', \`${a.title.replace(/'/g, "\\'")}\`, \`${(a.desc || '').replace(/'/g, "\\'")}\`, \`${a.imageUrl || ''}\`, \`${a.category || 'homepage'}\`)">Edit</button>
+                    <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteArticle('${docId}')">Delete</button>
+                </div>
+            </div>`;
+    });
+}
 
-            <h4 style="margin-top:2rem; margin-bottom:0.5rem;">Existing Articles:</h4>
-            <div id="articlesList" style="display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
+function editArticle(id, title, desc, imageUrl, category) {
+    document.getElementById("editingArticleId").value = id;
+    document.getElementById("artTitle").value = title;
+    document.getElementById("artDesc").value = desc;
+    document.getElementById("artCategory").value = category || 'homepage';
+    document.getElementById("artExistingImg").value = imageUrl;
+    document.getElementById("articleFormHeading").innerText = "Edit Article";
+    document.getElementById("pubArticleBtn").innerText = "Update Article";
+    document.getElementById("cancelArticleBtn").style.display = "inline-block";
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
 
-        <!-- TAB: PENDING PAYMENTS -->
-        <div id="tabPending" class="tab-pane" style="display:none;">
-            <h3>Student Payment Verifications</h3>
-            <table class="admin-table">
-                <thead><tr><th>Student</th><th>Course & Amount</th><th>Screenshot</th><th>Action</th></tr></thead>
-                <tbody id="pendingTableBody"></tbody>
-            </table>
-        </div>
+function resetArticleForm() {
+    document.getElementById("editingArticleId").value = "";
+    document.getElementById("artTitle").value = "";
+    document.getElementById("artDesc").value = "";
+    document.getElementById("artCategory").value = "homepage";
+    document.getElementById("artImageInput").value = "";
+    document.getElementById("artExistingImg").value = "";
+    document.getElementById("articleFormHeading").innerText = "Add New Article (For AdSense & News)";
+    document.getElementById("pubArticleBtn").innerText = "Publish Article";
+    document.getElementById("cancelArticleBtn").style.display = "none";
+}
 
-        <!-- TAB: COURSES -->
-        <div id="tabCourses" class="tab-pane" style="display:none;">
-            <h3>Manage Courses & Pricing</h3>
-            <input type="text" id="crsTitle" placeholder="Course Title">
-            <input type="text" id="crsKey" placeholder="Unique Key (e.g. web_dev)">
-            <input type="number" id="crsPrice" placeholder="Offer Price (NPR)">
-            <button onclick="saveCourse()">Save Course</button>
-            <div id="coursesList" style="margin-top:1.5rem; display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
+async function deleteArticle(id) {
+    if(confirm("के तपाईं यो आर्टिकल मेटाउन चाहनुहुन्छ?")) { 
+        await db.collection("site_articles").doc(id).delete(); 
+        loadArticles(); 
+    }
+}
 
-        <!-- TAB: LESSONS -->
-        <div id="tabLessons" class="tab-pane" style="display:none;">
-            <h3>Upload Course Lessons</h3>
-            <select id="lessonCourseSelect"></select>
-            <input type="number" id="lessonOrder" placeholder="Lesson Number (e.g. 1)">
-            <input type="text" id="lessonTitle" placeholder="Lesson Title">
-            <input type="text" id="lessonUrl" placeholder="YouTube Video URL or ID">
-            <textarea id="lessonDesc" rows="3" placeholder="Lesson Notes..."></textarea>
-            <button onclick="uploadLesson()">Publish Lesson</button>
-        </div>
+async function loadPendingPayments() {
+    const tbody = document.getElementById("pendingTableBody");
+    const snap = await db.collection("enrollments").where("status", "==", "pending").get();
+    tbody.innerHTML = "";
+    if(snap.empty) { tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;">कुनै पनि पेन्डिङ पेमेन्ट छैन।</td></tr>`; return; }
+    snap.forEach(doc => {
+        const d = doc.data();
+        tbody.innerHTML += `
+            <tr>
+                <td>${d.studentName}<br><small>${d.studentEmail}</small></td>
+                <td>${d.courseTitle}<br><b>रु. ${d.payableAmount}</b></td>
+                <td>
+                    ${d.proofImage ? `<img src="${d.proofImage}" style="width:50px; height:50px; object-fit:cover; border-radius:4px; cursor:pointer; border:1px solid #cbd5e1;" onclick="openProofModal('${d.proofImage}')">` : 'No Image'}
+                </td>
+                <td>
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn-success" style="padding:5px 10px; font-size:0.85rem;" onclick="approvePayment('${doc.id}', '${d.studentEmail}', '${d.courseKey}')">Approve</button>
+                        <button class="btn-danger" style="padding:5px 10px; font-size:0.85rem;" onclick="rejectPayment('${doc.id}')">Reject</button>
+                    </div>
+                </td>
+            </tr>`;
+    });
+}
 
-        <!-- TAB: QR -->
-        <div id="tabQr" class="tab-pane" style="display:none; max-width:400px;">
-            <h3>Update Payment QR</h3>
-            <input type="file" id="qrFileInput" accept="image/*" style="background:white; border:1px dashed #cbd5e1;">
-            <div style="text-align:center; margin:1rem 0;"><img id="qrPreview" style="max-width:150px; border-radius:6px; border:1px solid #ddd;"></div>
-            <button onclick="saveQrCode()">Save QR Code</button>
-        </div>
+function openProofModal(imgSrc) {
+    document.getElementById("modalProofImg").src = imgSrc;
+    document.getElementById("proofModal").style.display = "flex";
+}
 
-        <!-- TAB: NOTICE -->
-        <div id="tabNotice" class="tab-pane" style="display:none; max-width:500px;">
-            <h3>Website Notice Banner</h3>
-            <input type="text" id="noticeText" placeholder="सूचना ब्यानरको टेक्स्ट...">
-            <div style="display:flex; gap:10px;">
-                <button onclick="updateNotice(true)">Publish Banner</button>
-                <button class="btn-danger" onclick="updateNotice(false)">Hide Banner</button>
-            </div>
-        </div>
-    </div>
+async function approvePayment(id, email, courseKey) {
+    await db.collection("enrollments").doc(id).update({ status: "approved" });
+    const userSnap = await db.collection("users").where("email", "==", email.toLowerCase()).get();
+    if(!userSnap.empty) {
+        const uRef = userSnap.docs[0].ref;
+        let courses = userSnap.docs[0].data().enrolledCourses || [];
+        if(!courses.includes(courseKey)) { courses.push(courseKey); await uRef.update({ enrolledCourses: courses }); }
+    }
+    alert("✅ सफलतापूर्वक अप्रुभ भयो!"); loadPendingPayments();
+}
 
-    <!-- SCREENSHOT PREVIEW MODAL BOX -->
-    <div id="proofModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:3000; justify-content:center; align-items:center;" onclick="this.style.display='none'">
-        <div style="background:white; padding:15px; border-radius:8px; max-width:90%; max-height:90%; text-align:center;">
-            <img id="modalProofImg" src="" style="max-width:100%; max-height:80vh; border-radius:4px;">
-            <p style="margin-top:10px; color:#333; font-size:0.9rem;">बन्द गर्न बाहिर क्लिक गर्नुहोस्</p>
-        </div>
-    </div>
+async function rejectPayment(id) {
+    if(confirm("के तपाईं यो पेमेन्ट अनुरोध खारेज (Reject) गर्न चाहनुहुन्छ?")) {
+        await db.collection("enrollments").doc(id).delete();
+        alert("❌ पेमेन्ट अस्वीकार गरियो!");
+        loadPendingPayments();
+    }
+}
 
-    <!-- LINKING JAVASCRIPT FILE -->
-    <script src="admin.js"></script>
-</body>
-</html>
+async function loadCourses() {
+    const list = document.getElementById("coursesList");
+    const snap = await db.collection("site_courses").get();
+    list.innerHTML = "";
+    snap.forEach(doc => { list.innerHTML += `<div style="background:#f1f5f9; padding:10px; border-radius:6px;"><strong>${doc.data().title}</strong> (रु. ${doc.data().offerPrice})</div>`; });
+}
+
+async function saveCourse() {
+    const title = document.getElementById("crsTitle").value.trim();
+    const key = document.getElementById("crsKey").value.trim().toLowerCase();
+    const offerPrice = parseInt(document.getElementById("crsPrice").value);
+    if(!title || !key || isNaN(offerPrice)) return;
+    await db.collection("site_courses").doc(key).set({ title, offerPrice }, { merge: true });
+    alert("✅ कोर्स सेभ भयो!"); loadCourses();
+}
+
+async function loadCourseDropdown() {
+    const sel = document.getElementById("lessonCourseSelect");
+    const snap = await db.collection("site_courses").get();
+    sel.innerHTML = "";
+    snap.forEach(doc => { sel.innerHTML += `<option value="${doc.id}">${doc.data().title}</option>`; });
+}
+
+async function uploadLesson() {
+    const courseKey = document.getElementById("lessonCourseSelect").value;
+    const order = parseInt(document.getElementById("lessonOrder").value) || 1;
+    const title = document.getElementById("lessonTitle").value.trim();
+    const vid = document.getElementById("lessonUrl").value.trim();
+    const desc = document.getElementById("lessonDesc").value.trim();
+    if(!title || !vid) { alert("शीर्षक र भिडियो लिङ्क राख्नुहोस्!"); return; }
+    await db.collection("courses").doc(courseKey).collection("lessons").add({ order, title, vid, desc });
+    alert("✅ लेसन अपलोड भयो!");
+}
+
+async function loadQr() {
+    const doc = await db.collection("settings").doc("payment_qr").get();
+    if(doc.exists && doc.data().imageUrl) { document.getElementById("qrPreview").src = doc.data().imageUrl; }
+}
+
+async function saveQrCode() {
+    const file = document.getElementById("qrFileInput").files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const imgData = e.target.result;
+        await db.collection("settings").doc("payment_qr").set({ imageUrl: imgData });
+        document.getElementById("qrPreview").src = imgData; alert("✅ QR सुरक्षित भयो!");
+    };
+    reader.readAsDataURL(file);
+}
+
+async function updateNotice(show) {
+    const noticeText = document.getElementById("noticeText").value.trim();
+    await db.collection("settings").doc("main").set({ showNotice: show, noticeText }, { merge: true });
+    alert("✅ नोटिस अपडेट भयो!");
+}
