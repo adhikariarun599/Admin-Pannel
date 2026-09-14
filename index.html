@@ -119,10 +119,9 @@
             </table>
         </div>
 
-        <!-- TAB: COURSES (UPDATED WITH PRICES) -->
+        <!-- TAB: COURSES (UPDATED WITH PRICE & COMING SOON STATUS) -->
         <div id="tabCourses" class="tab-pane" style="display:none;">
             <h3 id="courseFormHeading">Manage Courses & Pricing</h3>
-            <input type="hidden" id="editingCourseKey">
             
             <input type="text" id="crsTitle" placeholder="Course Title (उदा: AI Course)">
             <input type="text" id="crsKey" placeholder="Unique Key (उदा: ai_cource)">
@@ -131,8 +130,16 @@
                 <input type="number" id="crsOrigPrice" placeholder="Original Price (रु. 5000)">
                 <input type="number" id="crsPrice" placeholder="Offer Price (रु. 3000)">
             </div>
+
+            <div style="margin-bottom:10px;">
+                <label style="font-size:0.88rem; font-weight:600; color:#475569;">कोर्सको स्थिति (Status):</label>
+                <select id="crsStatus" style="margin-top:3px; background:#fff;">
+                    <option value="live">🟢 Live (सक्रिय कोर्स)</option>
+                    <option value="coming_soon">⏳ Coming Soon (छिट्टै आउँदैछ)</option>
+                </select>
+            </div>
             
-            <textarea id="crsDesc" rows="2" placeholder="कोर्सको छोटो विवरण..." style="margin-top:4px; font-family:inherit;"></textarea>
+            <textarea id="crsDesc" rows="2" placeholder="कोर्सको छोटो विवरण..." style="font-family:inherit;"></textarea>
 
             <div style="display:flex; gap:10px;">
                 <button onclick="saveCourse()" id="saveCourseBtn">Save Course</button>
