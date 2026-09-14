@@ -242,7 +242,7 @@ async function rejectPayment(id) {
     }
 }
 
-// COURSES MANAGEMENT & EDITING
+// COURSES MANAGEMENT, PRICING & COMING SOON
 async function loadCourses() {
     const list = document.getElementById("coursesList");
     const snap = await db.collection("site_courses").get();
@@ -258,28 +258,32 @@ async function loadCourses() {
         const key = doc.id;
         const titleSafe = (c.title || '').replace(/'/g, "\\'");
         const descSafe = (c.desc || '').replace(/'/g, "\\'").replace(/\n/g, " ");
+        const status = c.status || 'live';
 
         list.innerHTML += `
             <div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
                 <div>
-                    <strong>${c.title}</strong> (${key})<br>
+                    <strong>${c.title}</strong> (${key}) - <span style="font-size:0.8rem; background:${status === 'coming_soon' ? '#fef3c7; color:#92400e;' : '#dcfce7; color:#15803d;'}; padding:2px 6px; border-radius:4px; font-weight:700;">${status === 'coming_soon' ? '⏳ Coming Soon' : '🟢 Live'}</span><br>
                     <span style="color:#089981; font-weight:700;">रु. ${c.offerPrice || 0}</span> / <del style="color:#ef4444;">रु. ${c.origPrice || 0}</del>
                 </div>
                 <div style="display:flex; gap:6px;">
-                    <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="loadCourseForEdit('${key}', '${titleSafe}', ${c.origPrice || 0}, ${c.offerPrice || 0}, '${descSafe}')">Edit</button>
+                    <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="loadCourseForEdit('${key}', '${titleSafe}', ${c.origPrice || 0}, ${c.offerPrice || 0}, '${descSafe}', '${status}')">Edit</button>
                     <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteCourse('${key}')">Delete</button>
                 </div>
             </div>`;
     });
 }
 
-function loadCourseForEdit(key, title, origPrice, offerPrice, desc) {
+function loadCourseForEdit(key, title, origPrice, offerPrice, desc, status) {
     document.getElementById("crsTitle").value = title;
     document.getElementById("crsKey").value = key;
-    document.getElementById("crsKey").disabled = true; // Key परिवर्तन गर्न नमिल्ने बनाउने
+    document.getElementById("crsKey").disabled = true;
     document.getElementById("crsOrigPrice").value = origPrice;
     document.getElementById("crsPrice").value = offerPrice;
     document.getElementById("crsDesc").value = desc || "";
+    if(document.getElementById("crsStatus")) {
+        document.getElementById("crsStatus").value = status || "live";
+    }
     
     document.getElementById("courseFormHeading").innerText = "Edit Course: " + title;
     document.getElementById("saveCourseBtn").innerText = "Update Course";
@@ -294,6 +298,7 @@ function resetCourseForm() {
     document.getElementById("crsOrigPrice").value = "";
     document.getElementById("crsPrice").value = "";
     document.getElementById("crsDesc").value = "";
+    if(document.getElementById("crsStatus")) document.getElementById("crsStatus").value = "live";
     
     document.getElementById("courseFormHeading").innerText = "Manage Courses & Pricing";
     document.getElementById("saveCourseBtn").innerText = "Save Course";
@@ -305,10 +310,11 @@ async function saveCourse() {
     const key = document.getElementById("crsKey").value.trim().toLowerCase();
     const origPrice = Number(document.getElementById("crsOrigPrice").value) || 0;
     const offerPrice = Number(document.getElementById("crsPrice").value) || 0;
+    const status = document.getElementById("crsStatus") ? document.getElementById("crsStatus").value : "live";
     const desc = document.getElementById("crsDesc").value.trim();
 
-    if(!title || !key || isNaN(offerPrice)) {
-        alert("कृपया शीर्षक, युनिक कि र अफर मूल्य अनिवार्य भर्नुहोस्!");
+    if(!title || !key) {
+        alert("कृपया शीर्षक र युनिक कि अनिवार्य भर्नुहोस्!");
         return;
     }
 
@@ -316,6 +322,7 @@ async function saveCourse() {
         title, 
         origPrice, 
         offerPrice, 
+        status, 
         desc, 
         updatedAt: firebase.firestore.FieldValue.serverTimestamp() 
     }, { merge: true });
