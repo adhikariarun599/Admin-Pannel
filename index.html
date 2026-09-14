@@ -119,13 +119,26 @@
             </table>
         </div>
 
-        <!-- TAB: COURSES -->
+        <!-- TAB: COURSES (UPDATED WITH PRICES) -->
         <div id="tabCourses" class="tab-pane" style="display:none;">
-            <h3>Manage Courses & Pricing</h3>
-            <input type="text" id="crsTitle" placeholder="Course Title">
-            <input type="text" id="crsKey" placeholder="Unique Key (e.g. web_dev)">
-            <input type="number" id="crsPrice" placeholder="Offer Price (NPR)">
-            <button onclick="saveCourse()">Save Course</button>
+            <h3 id="courseFormHeading">Manage Courses & Pricing</h3>
+            <input type="hidden" id="editingCourseKey">
+            
+            <input type="text" id="crsTitle" placeholder="Course Title (उदा: AI Course)">
+            <input type="text" id="crsKey" placeholder="Unique Key (उदा: ai_cource)">
+            
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                <input type="number" id="crsOrigPrice" placeholder="Original Price (रु. 5000)">
+                <input type="number" id="crsPrice" placeholder="Offer Price (रु. 3000)">
+            </div>
+            
+            <textarea id="crsDesc" rows="2" placeholder="कोर्सको छोटो विवरण..." style="margin-top:4px; font-family:inherit;"></textarea>
+
+            <div style="display:flex; gap:10px;">
+                <button onclick="saveCourse()" id="saveCourseBtn">Save Course</button>
+                <button class="btn-danger" id="cancelCourseBtn" style="display:none;" onclick="resetCourseForm()">Cancel Edit</button>
+            </div>
+
             <div id="coursesList" style="margin-top:1.5rem; display:flex; flex-direction:column; gap:8px;"></div>
         </div>
 
