@@ -21,14 +21,12 @@ async function handleLogin() {
     const u = document.getElementById("usernameInput").value.trim();
     const p = document.getElementById("passwordInput").value.trim();
     
-    // पहिलो प्रयास: डिफल्ट युजरनेम र पासवर्ड जाँच गर्ने
     if (u === adminUser && p === adminPass) {
         localStorage.setItem("is_admin_logged", "true");
         showDashboard();
         return;
     }
 
-    // दोस्रो प्रयास: फायरबेस (Firestore) बाट चेक गर्ने
     try {
         const doc = await db.collection("settings").doc("admin_auth").get();
         if (doc.exists) {
@@ -244,20 +242,95 @@ async function rejectPayment(id) {
     }
 }
 
+// COURSES MANAGEMENT & EDITING
 async function loadCourses() {
     const list = document.getElementById("coursesList");
     const snap = await db.collection("site_courses").get();
     list.innerHTML = "";
-    snap.forEach(doc => { list.innerHTML += `<div style="background:#f1f5f9; padding:10px; border-radius:6px;"><strong>${doc.data().title}</strong> (रु. ${doc.data().offerPrice})</div>`; });
+    
+    if(snap.empty) {
+        list.innerHTML = `<p style="color:#64748b; font-size:0.9rem;">कुनै पनि कोर्स छैन।</p>`;
+        return;
+    }
+
+    snap.forEach(doc => {
+        const c = doc.data();
+        const key = doc.id;
+        const titleSafe = (c.title || '').replace(/'/g, "\\'");
+        const descSafe = (c.desc || '').replace(/'/g, "\\'").replace(/\n/g, " ");
+
+        list.innerHTML += `
+            <div style="background:#f1f5f9; padding:10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                <div>
+                    <strong>${c.title}</strong> (${key})<br>
+                    <span style="color:#089981; font-weight:700;">रु. ${c.offerPrice || 0}</span> / <del style="color:#ef4444;">रु. ${c.origPrice || 0}</del>
+                </div>
+                <div style="display:flex; gap:6px;">
+                    <button class="btn-warning" style="padding:4px 8px; font-size:0.8rem;" onclick="loadCourseForEdit('${key}', '${titleSafe}', ${c.origPrice || 0}, ${c.offerPrice || 0}, '${descSafe}')">Edit</button>
+                    <button class="btn-danger" style="padding:4px 8px; font-size:0.8rem;" onclick="deleteCourse('${key}')">Delete</button>
+                </div>
+            </div>`;
+    });
+}
+
+function loadCourseForEdit(key, title, origPrice, offerPrice, desc) {
+    document.getElementById("crsTitle").value = title;
+    document.getElementById("crsKey").value = key;
+    document.getElementById("crsKey").disabled = true; // Key परिवर्तन गर्न नमिल्ने बनाउने
+    document.getElementById("crsOrigPrice").value = origPrice;
+    document.getElementById("crsPrice").value = offerPrice;
+    document.getElementById("crsDesc").value = desc || "";
+    
+    document.getElementById("courseFormHeading").innerText = "Edit Course: " + title;
+    document.getElementById("saveCourseBtn").innerText = "Update Course";
+    document.getElementById("cancelCourseBtn").style.display = "inline-block";
+    window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function resetCourseForm() {
+    document.getElementById("crsTitle").value = "";
+    document.getElementById("crsKey").value = "";
+    document.getElementById("crsKey").disabled = false;
+    document.getElementById("crsOrigPrice").value = "";
+    document.getElementById("crsPrice").value = "";
+    document.getElementById("crsDesc").value = "";
+    
+    document.getElementById("courseFormHeading").innerText = "Manage Courses & Pricing";
+    document.getElementById("saveCourseBtn").innerText = "Save Course";
+    document.getElementById("cancelCourseBtn").style.display = "none";
 }
 
 async function saveCourse() {
     const title = document.getElementById("crsTitle").value.trim();
     const key = document.getElementById("crsKey").value.trim().toLowerCase();
-    const offerPrice = parseInt(document.getElementById("crsPrice").value);
-    if(!title || !key || isNaN(offerPrice)) return;
-    await db.collection("site_courses").doc(key).set({ title, offerPrice }, { merge: true });
-    alert("✅ कोर्स सेभ भयो!"); loadCourses();
+    const origPrice = Number(document.getElementById("crsOrigPrice").value) || 0;
+    const offerPrice = Number(document.getElementById("crsPrice").value) || 0;
+    const desc = document.getElementById("crsDesc").value.trim();
+
+    if(!title || !key || isNaN(offerPrice)) {
+        alert("कृपया शीर्षक, युनिक कि र अफर मूल्य अनिवार्य भर्नुहोस्!");
+        return;
+    }
+
+    await db.collection("site_courses").doc(key).set({ 
+        title, 
+        origPrice, 
+        offerPrice, 
+        desc, 
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp() 
+    }, { merge: true });
+
+    alert("✅ कोर्स सफलतापूर्वक सेभ भयो!"); 
+    resetCourseForm();
+    loadCourses();
+}
+
+async function deleteCourse(key) {
+    if(confirm(`के तपाईं '${key}' कोर्सलाई मेटाउन चाहनुहुन्छ?`)) {
+        await db.collection("site_courses").doc(key).delete();
+        alert("✅ कोर्स हटाइयो!");
+        loadCourses();
+    }
 }
 
 async function loadCourseDropdown() {
