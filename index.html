@@ -3,191 +3,479 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - Arun Adhikari</title>
+    <title>Arun Adhikari - Learning Hub & Premium Courses</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     
-    <!-- FIREBASE SDKs -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <style>
         :root {
             --primary: #1e3a8a;
+            --primary-light: #2563eb;
             --dark: #0f172a;
             --gray-bg: #f8fafc;
             --card-border: #e2e8f0;
+            --text-main: #334155;
+            --text-dark: #0f172a;
+            --green: #089981;
+            --red: #ef4444;
+            --yellow: #f59e0b;
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
-        body { background-color: var(--gray-bg); color: #334155; padding: 20px; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            scroll-behavior: smooth;
+            -webkit-user-select: none;
+            user-select: none;
+        }
 
-        .login-container { max-width: 400px; margin: 80px auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; }
-        .dashboard-container { max-width: 1200px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: none; }
+        body {
+            background-color: var(--gray-bg);
+            color: var(--text-main);
+            line-height: 1.6;
+        }
 
-        input, textarea, select { width: 100%; padding: 0.7rem; border: 1px solid #cbd5e1; border-radius: 6px; margin-bottom: 1rem; font-size: 1rem; }
-        button { background: var(--primary); color: white; border: none; padding: 0.7rem 1.2rem; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #1d4ed8; }
-        .btn-danger { background: #dc2626; color: white; }
-        .btn-danger:hover { background: #b91c1c; }
-        .btn-warning { background: #d97706; color: white; }
-        .btn-warning:hover { background: #b45309; }
-        .btn-secondary { background: #475569; color: white; }
-        .btn-success { background: #089981; color: white; }
-        .btn-success:hover { background: #057a66; }
+        /* TOP NOTICE */
+        #siteNoticeBanner {
+            background: linear-gradient(90deg, #d97706, #b45309);
+            color: #ffffff;
+            padding: 0.5rem 5%;
+            font-size: 0.92rem;
+            font-weight: 600;
+            display: none;
+            text-align: center;
+            position: fixed;
+            top: 0;
+            width: 100%;
+            z-index: 1001;
+        }
 
-        .admin-nav-bar { display: flex; gap: 8px; overflow-x: auto; margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.8rem; }
-        .admin-tab-btn { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem; white-space: nowrap; }
-        .admin-tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        /* NAVBAR */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            z-index: 1000;
+            padding: 0.8rem 6%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: top 0.3s;
+        }
 
-        .admin-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        .admin-table th, .admin-table td { border: 1px solid #e2e8f0; padding: 0.7rem; font-size: 0.9rem; text-align: left; }
-        .admin-table th { background: #f1f5f9; }
+        .logo {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 1.2rem;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn-auth {
+            background: var(--primary);
+            color: #ffffff !important;
+            padding: 0.5rem 1.1rem;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-auth:hover { background: var(--primary-light); }
+
+        /* PORTAL HERO BANNER */
+        .portal-hero {
+            padding: 130px 6% 50px 6%;
+            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
+            color: #ffffff;
+            text-align: center;
+        }
+
+        .portal-hero h1 {
+            font-size: 2.8rem;
+            margin-bottom: 0.6rem;
+            font-weight: 800;
+        }
+
+        .portal-hero p {
+            font-size: 1.15rem;
+            color: #cbd5e1;
+            max-width: 650px;
+            margin: 0 auto 1.5rem auto;
+        }
+
+        .search-bar-box {
+            max-width: 520px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .search-bar-box input {
+            width: 100%;
+            padding: 0.9rem 1.2rem 0.9rem 2.8rem;
+            border-radius: 30px;
+            border: none;
+            font-size: 1rem;
+            outline: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .search-bar-box i {
+            position: absolute;
+            left: 1.1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #64748b;
+        }
+
+        /* COURSES GRID */
+        .courses-section {
+            padding: 50px 6%;
+            max-width: 1250px;
+            margin: 0 auto;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 2rem;
+        }
+
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.8rem;
+        }
+
+        .course-card {
+            background: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .course-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -3px rgba(0,0,0,0.1);
+        }
+
+        .course-badge-header {
+            height: 120px;
+            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-size: 2.5rem;
+            position: relative;
+        }
+
+        .discount-pill {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #ef4444;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+
+        .course-content {
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .course-content h3 {
+            color: var(--dark);
+            font-size: 1.25rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .course-content p {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            flex-grow: 1;
+        }
+
+        .course-footer {
+            border-top: 1px solid #f1f5f9;
+            padding-top: 0.8rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pricing-box {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pricing-box del {
+            color: #94a3b8;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .pricing-box strong {
+            color: var(--green);
+            font-size: 1.3rem;
+            font-weight: 800;
+        }
+
+        /* MODALS */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.85);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .modal-content {
+            background: #ffffff;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 650px;
+            padding: 1.5rem;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 0.8rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .btn-close-modal {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        footer { background: var(--dark); color: #94a3b8; text-align: center; padding: 2rem 1rem; margin-top: 4rem; }
     </style>
 </head>
-<body>
+<body oncontextmenu="return false;">
 
-    <!-- LOGIN SCREEN -->
-    <div id="loginScreen" class="login-container">
-        <h2><i class="fas fa-shield-alt" style="color:var(--primary);"></i> Admin Portal</h2>
-        <p style="color:#64748b; margin-bottom:1.5rem; font-size:0.9rem;">admin.arunadhikari.com.np</p>
-        <input type="text" id="usernameInput" placeholder="Username">
-        <input type="password" id="passwordInput" placeholder="Password">
-        <button style="width:100%;" onclick="handleLogin()">Login to Dashboard</button>
+    <div id="siteNoticeBanner">
+        <span id="siteNoticeText">📢 विशेष अफर: आज मात्र सबै कोर्सहरूमा भारी छुट!</span>
     </div>
 
-    <!-- MAIN DASHBOARD -->
-    <div id="dashboardScreen" class="dashboard-container">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
-            <h2><i class="fas fa-user-shield"></i> Management Panel</h2>
-            <button class="btn-danger" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    <nav id="mainNavbar">
+        <a href="https://arunadhikari.com.np" class="logo">
+            <i class="fas fa-graduation-cap"></i>
+            <span>Arun's Learning Hub</span>
+        </a>
+
+        <ul class="nav-links">
+            <li><a href="https://arunadhikari.com.np"><i class="fas fa-arrow-left"></i> Main Portfolio</a></li>
+            <li id="myCoursesNavTab" style="display: none;">
+                <a href="javascript:void(0)" onclick="openMyCoursesDashboard()" style="color:#2563eb;"><i class="fas fa-play-circle"></i> My Enrolled Courses</a>
+            </li>
+            <li>
+                <button id="authBtn" class="btn-auth" onclick="handleStudentAuth()"><i class="fab fa-google"></i> Student Login</button>
+            </li>
+        </ul>
+    </nav>
+
+    <section class="portal-hero">
+        <h1>Master Practical Skills in Nepal</h1>
+        <p>वेब डेभलपमेन्ट, एप निर्माण, भिडियो सम्पादन, र सेयर बजारका व्यावहारिक कोर्सहरू।</p>
+        <div class="search-bar-box">
+            <i class="fas fa-search"></i>
+            <input type="text" id="courseSearchInput" placeholder="कोर्स खोज्नुहोस्..." onkeyup="filterCourses()">
         </div>
+    </section>
 
-        <div class="admin-nav-bar">
-            <button class="admin-tab-btn active" onclick="switchTab('articles', this)"><i class="fas fa-newspaper"></i> Manage Articles</button>
-            <button class="admin-tab-btn" onclick="switchTab('pending', this)"><i class="fas fa-receipt"></i> Pending Payments</button>
-            <button class="admin-tab-btn" onclick="switchTab('courses', this)"><i class="fas fa-book"></i> Courses</button>
-            <button class="admin-tab-btn" onclick="switchTab('lessons', this)"><i class="fas fa-video"></i> Lessons</button>
-            <button class="admin-tab-btn" onclick="switchTab('qr', this)"><i class="fas fa-qrcode"></i> Payment QR</button>
-            <button class="admin-tab-btn" onclick="switchTab('notice', this)"><i class="fas fa-bullhorn"></i> Notice Banner</button>
-        </div>
-
-        <!-- TAB: ARTICLES -->
-        <div id="tabArticles" class="tab-pane">
-            <h3 id="articleFormHeading">Add New Article (For AdSense & News)</h3>
-            <input type="hidden" id="editingArticleId">
-            
-            <label style="font-size:0.9rem; font-weight:600; color:#475569;">समाचारको श्रेणी (Category):</label>
-            <select id="artCategory" style="margin-top:4px; background:#fff;">
-                <option value="homepage">होमपेज (Homepage)</option>
-                <option value="finance">आर्थिक साक्षरता</option>
-                <option value="stock">लगानी र सेयर बजार</option>
-                <option value="tech">प्रविधि र सीप</option>
-                <option value="agri">कृषि तथा व्यवसाय</option>
-            </select>
-
-            <input type="text" id="artTitle" placeholder="Article Title (शीर्षक)" style="margin-top:4px;">
-            
-            <label style="font-size:0.9rem; font-weight:600; color:#475569;">थम्बनेल फोटो (अगाडि देखिने फोटो):</label>
-            <input type="file" id="artImageInput" accept="image/*" style="background:#f1f5f9; padding:0.5rem; margin-top:4px;">
-            <input type="hidden" id="artExistingImg">
-
-            <div style="margin-top:10px; display:flex; justify-content:space-between; align-items:center;">
-                <label style="font-size:0.9rem; font-weight:600; color:#475569;">आर्टिकलको मुख्य विवरण (Content):</label>
-                <div>
-                    <input type="file" id="contentImageInput" accept="image/*" style="display:none;" onchange="insertImageIntoContent(this)">
-                    <button type="button" class="btn-secondary" style="font-size:0.8rem; padding:0.3rem 0.6rem;" onclick="document.getElementById('contentImageInput').click()"><i class="fas fa-image"></i> बीचमा फोटो राख्नुहोस्</button>
-                </div>
+    <section class="courses-section">
+        <div class="section-header">
+            <div>
+                <h2 style="font-size: 1.8rem; color: var(--dark);">Explore All Courses</h2>
+                <p style="color: #64748b;">लाइफटाइम एक्सेस र नेपाली भाषामा व्यावहारिक कक्षाहरू</p>
             </div>
-            
-            <textarea id="artDesc" rows="7" placeholder="यहाँ आर्टिकलको पूरा विवरण लेख्नुहोस्..." style="margin-top:6px;"></textarea>
-            
-            <div style="display:flex; gap:10px;">
-                <button onclick="publishArticle()" id="pubArticleBtn">Publish Article</button>
-                <button class="btn-danger" id="cancelArticleBtn" style="display:none;" onclick="resetArticleForm()">Cancel Edit</button>
-            </div>
-
-            <h4 style="margin-top:2rem; margin-bottom:0.5rem;">Existing Articles:</h4>
-            <div id="articlesList" style="display:flex; flex-direction:column; gap:8px;"></div>
+            <button id="btnHeroMyCourses" class="btn-auth" style="background:#2563eb; display:none;" onclick="openMyCoursesDashboard()">
+                <i class="fas fa-play-circle"></i> Go to My Courses
+            </button>
         </div>
 
-        <!-- TAB: PENDING PAYMENTS -->
-        <div id="tabPending" class="tab-pane" style="display:none;">
-            <h3>Student Payment Verifications</h3>
-            <table class="admin-table">
-                <thead><tr><th>Student</th><th>Course & Amount</th><th>Screenshot</th><th>Action</th></tr></thead>
-                <tbody id="pendingTableBody"></tbody>
-            </table>
-        </div>
+        <div class="grid-container" id="coursesCardsContainer"></div>
+    </section>
 
-        <!-- TAB: COURSES (UPDATED WITH PRICE & COMING SOON STATUS) -->
-        <div id="tabCourses" class="tab-pane" style="display:none;">
-            <h3 id="courseFormHeading">Manage Courses & Pricing</h3>
-            
-            <input type="text" id="crsTitle" placeholder="Course Title (उदा: AI Course)">
-            <input type="text" id="crsKey" placeholder="Unique Key (उदा: ai_cource)">
-            
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                <input type="number" id="crsOrigPrice" placeholder="Original Price (रु. 5000)">
-                <input type="number" id="crsPrice" placeholder="Offer Price (रु. 3000)">
-            </div>
+    <footer>
+        <p>&copy; 2026 Arun Adhikari Learning Hub. All Rights Reserved.</p>
+    </footer>
 
-            <div style="margin-bottom:10px;">
-                <label style="font-size:0.88rem; font-weight:600; color:#475569;">कोर्सको स्थिति (Status):</label>
-                <select id="crsStatus" style="margin-top:3px; background:#fff;">
-                    <option value="live">🟢 Live (सक्रिय कोर्स)</option>
-                    <option value="coming_soon">⏳ Coming Soon (छिट्टै आउँदैछ)</option>
-                </select>
-            </div>
-            
-            <textarea id="crsDesc" rows="2" placeholder="कोर्सको छोटो विवरण..." style="font-family:inherit;"></textarea>
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBLIgjthPddTsuf8mR4Y6fq8ETsolelhOY",
+            authDomain: "arun-courses.firebaseapp.com",
+            projectId: "arun-courses",
+            storageBucket: "arun-courses.firebasestorage.app",
+            messagingSenderId: "532244891416",
+            appId: "1:532244891416:web:90b7d7c65c047d799e406d"
+        };
 
-            <div style="display:flex; gap:10px;">
-                <button onclick="saveCourse()" id="saveCourseBtn">Save Course</button>
-                <button class="btn-danger" id="cancelCourseBtn" style="display:none;" onclick="resetCourseForm()">Cancel Edit</button>
-            </div>
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
 
-            <div id="coursesList" style="margin-top:1.5rem; display:flex; flex-direction:column; gap:8px;"></div>
-        </div>
+        let dynamicCourses = [];
 
-        <!-- TAB: LESSONS -->
-        <div id="tabLessons" class="tab-pane" style="display:none;">
-            <h3>Upload Course Lessons</h3>
-            <select id="lessonCourseSelect"></select>
-            <input type="number" id="lessonOrder" placeholder="Lesson Number (e.g. 1)">
-            <input type="text" id="lessonTitle" placeholder="Lesson Title">
-            <input type="text" id="lessonUrl" placeholder="YouTube Video URL or ID">
-            <textarea id="lessonDesc" rows="3" placeholder="Lesson Notes..."></textarea>
-            <button onclick="uploadLesson()">Publish Lesson</button>
-        </div>
+        document.addEventListener("DOMContentLoaded", async () => {
+            await loadCoursesFromFirebase();
+        });
 
-        <!-- TAB: QR -->
-        <div id="tabQr" class="tab-pane" style="display:none; max-width:400px;">
-            <h3>Update Payment QR</h3>
-            <input type="file" id="qrFileInput" accept="image/*" style="background:white; border:1px dashed #cbd5e1;">
-            <div style="text-align:center; margin:1rem 0;"><img id="qrPreview" style="max-width:150px; border-radius:6px; border:1px solid #ddd;"></div>
-            <button onclick="saveQrCode()">Save QR Code</button>
-        </div>
+        async function loadCoursesFromFirebase() {
+            let coursesToDisplay = [];
+            try {
+                const snapshot = await db.collection("site_courses").get();
+                if (!snapshot.empty) {
+                    snapshot.forEach(doc => { 
+                        const data = doc.data();
+                        coursesToDisplay.push({ 
+                            key: doc.id, 
+                            title: data.title || doc.id,
+                            desc: data.desc || "व्यावहारिक र पूर्ण ज्ञानसहितको कोर्स",
+                            origPrice: data.origPrice || 1000,
+                            offerPrice: data.offerPrice || 0,
+                            status: data.status || 'live',
+                            icon: data.icon || "fas fa-laptop-code",
+                            ...data 
+                        }); 
+                    });
+                }
+            } catch (err) {
+                console.error("Firestore Error:", err);
+            }
 
-        <!-- TAB: NOTICE -->
-        <div id="tabNotice" class="tab-pane" style="display:none; max-width:500px;">
-            <h3>Website Notice Banner</h3>
-            <input type="text" id="noticeText" placeholder="सूचना ब्यानरको टेक्स्ट...">
-            <div style="display:flex; gap:10px;">
-                <button onclick="updateNotice(true)">Publish Banner</button>
-                <button class="btn-danger" onclick="updateNotice(false)">Hide Banner</button>
-            </div>
-        </div>
-    </div>
+            dynamicCourses = coursesToDisplay;
+            renderCourseCards(dynamicCourses);
+        }
 
-    <!-- SCREENSHOT PREVIEW MODAL BOX -->
-    <div id="proofModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:3000; justify-content:center; align-items:center;" onclick="this.style.display='none'">
-        <div style="background:white; padding:15px; border-radius:8px; max-width:90%; max-height:90%; text-align:center;">
-            <img id="modalProofImg" src="" style="max-width:100%; max-height:80vh; border-radius:4px;">
-            <p style="margin-top:10px; color:#333; font-size:0.9rem;">बन्द गर्न बाहिर क्लिक गर्नुहोस्</p>
-        </div>
-    </div>
+        // COMING SOON र प्राइस सपोर्टसहितको कार्ड रेन्डर गर्ने फंक्सन
+        function renderCourseCards(coursesList) {
+            const container = document.getElementById("coursesCardsContainer");
+            if (!container) return;
+            container.innerHTML = "";
 
-    <!-- LINKING JAVASCRIPT FILE -->
-    <script src="admin.js"></script>
+            if (!coursesList || coursesList.length === 0) {
+                container.innerHTML = `<p style="text-align:center; color:#64748b; grid-column:1/-1;">कुनै पनि कोर्स उपलब्ध छैन।</p>`;
+                return;
+            }
+
+            coursesList.forEach(c => {
+                const title = c.title || "Course";
+                const origPrice = Number(c.origPrice) || 1000;
+                const offerPrice = Number(c.offerPrice) || 0;
+                const discount = origPrice > offerPrice ? Math.round(((origPrice - offerPrice) / origPrice) * 100) : 0;
+                const descSafe = (c.desc || 'व्यावहारिक र पूर्ण ज्ञानसहितको कोर्स').replace(/'/g, "\\'");
+                const iconClass = c.icon || 'fas fa-laptop-code';
+                
+                const isComingSoon = c.status === 'coming_soon';
+
+                const pricingHtml = isComingSoon 
+                    ? `<span style="color:#d97706; font-weight:700; font-size:1.05rem;"><i class="fas fa-clock"></i> Coming Soon</span>`
+                    : `<del>रु. ${origPrice}</del><strong>रु. ${offerPrice}</strong>`;
+
+                const actionBtnHtml = isComingSoon
+                    ? `<button class="btn-auth" style="background:#94a3b8; cursor:not-allowed; opacity:0.8;" disabled><i class="fas fa-clock"></i> छिट्टै आउँदैछ</button>`
+                    : `<button class="btn-auth" style="background:#089981;" onclick="alert('Enrollment feature active for ${title}')">
+                        <i class="fas fa-shopping-cart"></i> Enroll Now
+                       </button>`;
+
+                container.innerHTML += `
+                    <div class="course-card">
+                        <div class="course-badge-header">
+                            <span class="discount-pill">${isComingSoon ? 'SOON' : (discount > 0 ? discount + '% OFF' : 'OFFER')}</span>
+                            <i class="${iconClass}"></i>
+                        </div>
+                        <div class="course-content">
+                            <h3>${title}</h3>
+                            <p>${c.desc || 'व्यावहारिक र पूर्ण ज्ञानसहितको कोर्स'}</p>
+                            <div class="course-footer">
+                                <div class="pricing-box">
+                                    ${pricingHtml}
+                                </div>
+                                <div>
+                                    ${actionBtnHtml}
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function filterCourses() {
+            const searchInput = document.getElementById("courseSearchInput");
+            const query = (searchInput ? searchInput.value : "").trim().toLowerCase();
+            if (!query) {
+                renderCourseCards(dynamicCourses);
+                return;
+            }
+            const filtered = dynamicCourses.filter(c => 
+                (c.title && c.title.toLowerCase().includes(query)) || 
+                (c.desc && c.desc.toLowerCase().includes(query))
+            );
+            renderCourseCards(filtered);
+        }
+
+        function handleStudentAuth() {
+            auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e => alert("Login Error: " + e.message));
+        }
+    </script>
 </body>
 </html>
